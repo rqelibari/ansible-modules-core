@@ -26,6 +26,10 @@ import fnmatch
 import time
 import re
 
+ANSIBLE_METADATA = {'status': ['stableinterface'],
+                    'supported_by': 'core',
+                    'version': '1.0'}
+
 DOCUMENTATION = '''
 ---
 module: find
@@ -66,7 +70,8 @@ options:
         required: false
         description:
             - Type of file to select
-        choices: [ "file", "directory" ]
+            - The 'link' and 'any' choices were added in version 2.3
+        choices: [ "file", "directory", "link", "any" ]
         default: "file"
     recurse:
         required: false
@@ -275,7 +280,7 @@ def main():
             paths         = dict(required=True, aliases=['name','path'], type='list'),
             patterns      = dict(default=['*'], type='list', aliases=['pattern']),
             contains      = dict(default=None, type='str'),
-            file_type     = dict(default="file", choices=['file', 'directory'], type='str'),
+            file_type     = dict(default="file", choices=['file', 'directory', 'link', 'any'], type='str'),
             age           = dict(default=None, type='str'),
             age_stamp     = dict(default="mtime", choices=['atime','mtime','ctime'], type='str'),
             size          = dict(default=None, type='str'),
@@ -331,13 +336,17 @@ def main():
                        continue
 
                     try:
-                        st = os.stat(fsname)
+                        st = os.lstat(fsname)
                     except:
                         msg+="%s was skipped as it does not seem to be a valid file or it cannot be accessed\n" % fsname
                         continue
 
                     r = {'path': fsname}
-                    if stat.S_ISDIR(st.st_mode) and params['file_type'] == 'directory':
+                    if params['file_type'] == 'any':
+                        if pfilter(fsobj, params['patterns'], params['use_regex']) and agefilter(st, now, age, params['age_stamp']):
+                            r.update(statinfo(st))
+                            filelist.append(r)
+                    elif stat.S_ISDIR(st.st_mode) and params['file_type'] == 'directory':
                         if pfilter(fsobj, params['patterns'], params['use_regex']) and agefilter(st, now, age, params['age_stamp']):
 
                             r.update(statinfo(st))
@@ -354,6 +363,11 @@ def main():
                                 r['checksum'] = module.sha1(fsname)
                             filelist.append(r)
 
+                    elif stat.S_ISLNK(st.st_mode) and params['file_type'] == 'link':
+                        if pfilter(fsobj, params['patterns'], params['use_regex']) and agefilter(st, now, age, params['age_stamp']):
+                            r.update(statinfo(st))
+                            filelist.append(r)
+
                 if not params['recurse']:
                     break
         else:
@@ -364,5 +378,6 @@ def main():
 
 # import module snippets
 from ansible.module_utils.basic import *
-main()
 
+if __name__ == '__main__':
+    main()

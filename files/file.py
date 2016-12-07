@@ -18,6 +18,10 @@
 # You should have received a copy of the GNU General Public License
 # along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 
+ANSIBLE_METADATA = {'status': ['stableinterface'],
+                    'supported_by': 'core',
+                    'version': '1.0'}
+
 DOCUMENTATION = '''
 ---
 module: file
@@ -100,8 +104,8 @@ EXAMPLES = '''
     group: foo
     state: link
 - file:
-    src: /tmp/{{ item.src }}
-    dest: "{{ item.dest }}"
+    src: '/tmp/{{ item.src }}'
+    dest: '{{ item.dest }}'
     state: link
   with_items:
     - { src: 'x', dest: 'y' }
@@ -114,7 +118,8 @@ EXAMPLES = '''
     mode: "u=rw,g=r,o=r"
 
 # touch the same file, but add/remove some permissions
-- file: path=/etc/foo.conf
+- file:
+    path: /etc/foo.conf
     state: touch
     mode: "u+rw,g-wx,o-rwx"
 
@@ -123,7 +128,6 @@ EXAMPLES = '''
     path: /etc/some_directory
     state: directory
     mode: 0755
-
 '''
 
 import errno
@@ -237,6 +241,7 @@ def main():
             if follow and state == 'link':
                 # use the current target of the link as the source
                 src = to_native(os.path.realpath(b_path), errors='strict')
+                b_src = to_bytes(os.path.realpath(b_path), errors='strict')
             else:
                 module.fail_json(msg='src and dest are required for creating links')
 

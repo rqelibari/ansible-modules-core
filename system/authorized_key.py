@@ -21,6 +21,10 @@ You should have received a copy of the GNU General Public License
 along with Ansible.  If not, see <http://www.gnu.org/licenses/>.
 """
 
+ANSIBLE_METADATA = {'status': ['preview'],
+                    'supported_by': 'core',
+                    'version': '1.0'}
+
 DOCUMENTATION = '''
 ---
 module: authorized_key
@@ -105,12 +109,14 @@ EXAMPLES = '''
 - authorized_key:
     user: charlie
     key: "{{ lookup('file', '/home/charlie/.ssh/id_rsa.pub') }}"
-    path: '/etc/ssh/authorized_keys/charlie'
+    path: /etc/ssh/authorized_keys/charlie
     manage_dir: no
 
 # Using with_file
 - name: Set up authorized_keys for the deploy user
-  authorized_key: user=deploy key="{{ item }}"
+  authorized_key:
+    user: deploy
+    key: "{{ item }}"
   with_file:
     - public_keys/doe-jane
     - public_keys/doe-john
@@ -130,7 +136,7 @@ EXAMPLES = '''
 # Set up authorized_keys exclusively with one key
 - authorized_key:
     user: root
-    key: '{{ item }}'
+    key: "{{ item }}"
     state: present
     exclusive: yes
   with_file:
